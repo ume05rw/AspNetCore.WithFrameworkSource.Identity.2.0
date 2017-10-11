@@ -1,0 +1,12 @@
+﻿@using Microsoft.AspNetCore.Identity
+@model WithSource.Identity.Models.User
+@{
+    this.ViewData["Title"] = "Status";
+}
+<h2>Members ONLY!!</h2>
+<div>Authed: @User.Identity.IsAuthenticated</div>
+<div>Login Name: @User.Identity.Name</div>
+
+<a asp-action="register">Go Register</a><br/>
+<a asp-action="login">Go Login</a><br/>
+<a asp-action="logout">Logout</a><br/>

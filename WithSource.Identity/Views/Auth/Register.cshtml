@@ -1,0 +1,198 @@
+﻿@using Microsoft.AspNetCore.Identity
+@model WithSource.Identity.Models.User
+@{
+    this.ViewData["Title"] = "Index";
+}
+<script src="~/js/app.js" type="text/javascript" ></script>
+<script src="~/js/app.log.js" type="text/javascript" ></script>
+<script src="~/js/app.query.js" type="text/javascript" ></script>
+<script src="~/js/app.infoBox.js" type="text/javascript" ></script>
+<h2>Register</h2>
+<div>
+    @if (this.ViewData["RegisterResult"] != null)
+    {
+        var result = (IdentityResult)this.ViewData["RegisterResult"];
+        @if (!result.Succeeded)
+        {
+            @foreach (var error in result.Errors)
+            {
+                <p>@($"Code: {error.Code}, Description: {error.Description}")</p>
+            }
+        }
+    }
+
+    <div id="InfoBox"></div>
+    @using (Html.BeginForm(
+        "Index",                              //Action
+        "Auth",                               //Controller
+        //new                                 //Url query params
+        //{                                   // -> <form action="/Home/Register/value?charset=utf8"...
+        //    id = "value",
+        //    charset = "utf8"
+        //},
+        FormMethod.Post,                      //Method
+        new                                   //attributes
+        {
+            id = "authBox",
+            enctype = "mulitipart/form-data"
+        }
+     )) { 
+        <div class="form-group">
+            <label for="LoginName">User Name</label>
+            @Html.TextBoxFor(
+                model => model.LoginName,
+                new
+                {
+                    placeholder = "User Name",
+                    @class = "form-control",
+                }
+            )
+        </div>
+        
+        <div class="form-group">
+            <label for="Password">Password</label>
+            @Html.Password(
+                "Password",
+                "",
+                new
+                {
+                    placeholder = "Password",
+                    @class = "form-control",
+                }
+            )
+            <br/>
+            @Html.Password(
+                "PasswordRetype",
+                "",
+                new
+                {
+                    placeholder = "Password(Confirm)",
+                    @class = "form-control",
+                }
+            )
+            <br/>
+        </div>
+        <a id="submit" class="btn btn-default" href="javascript:void(0);">Register</a>
+    }
+</div>
+<a asp-action="memberonly">Go Member-Only</a><br/>
+<a asp-action="login">Go Login</a><br/>
+<a asp-action="logout">Logout</a><br/>
+<script>
+$(function () { 
+
+    var appImplement = {
+        $buttonSubmit: $("a#submit"),
+
+        $loginName: $("input#LoginName"),
+        $password: $("input#Password"),
+        $passwordRetype: $("input#PasswordRetype"),
+        $form: $("form#authBox"),
+
+        infoBox: null,
+        queryRegister: null,
+        queryLogin: null,
+
+        __constructor: function () { 
+
+            this.infoBox = new app.infoBox({
+                elementId: "InfoBox",
+                type: app.infoBox.Type.Warning,
+            });
+
+            this.queryRegister = new app.query({
+                url: "/auth/api",
+                method: app.query.MethodType.Post,
+                caller: this,
+                callback: this.queryRegisterCallback,
+                failureCallback: this.queryFailureCallback,
+            });
+
+            this.queryLogin = new app.query({
+                url: "/auth/api",
+                method: app.query.MethodType.Get,
+                caller: this,
+                callback: this.queryLoginCallback,
+                failureCallback: this.queryFailureCallback,
+            });
+
+            this.$buttonSubmit.click(function () {
+                this.onSubmit();
+            }.bind(this));
+        },
+
+        onSubmit: function () {
+            if (!this.localValidation())
+                return;
+
+            var value = {};
+            $(this.$form.serializeArray()).each(function (i, v) {
+                value[v.name] = v.value;
+            });
+            this.queryRegister.exec(value);
+        },
+
+        localValidation: function () {
+            if (this.$loginName.val().length <= 0) {
+                this.infoBox.show("Input User Name.");
+                return false;
+            }
+
+            if (this.$password.val().length <= 0) {
+                this.infoBox.show("Input Password");
+                return false;
+            }
+
+            if (this.$password.val() !== this.$passwordRetype.val()) {
+                this.infoBox.show("Passwords Not Matched. ");
+                return false;
+            }
+
+            return true;
+        },
+
+        queryRegisterCallback: function (res) {
+
+            if (res.succeeded) {
+
+                var value = {};
+                $(this.$form.serializeArray()).each(function (i, v) {
+                    value[v.name] = v.value;
+                });
+                this.queryLogin.exec(value);
+
+            } else {
+                this.onResultError(res.errors);
+            }
+        },
+
+        queryLoginCallback: function (res) {
+
+            if (res.succeeded) {
+                window.location.assign("/auth/memberonly");
+            } else {
+                this.onResultError(res.errors);
+            }
+        },
+
+        onResultError: function (errors) {
+
+            var messages = [];
+            $.each(errors, function (i, val) {
+                messages.push(val.message);
+            });
+
+            this.infoBox.show(messages);
+        },
+
+        queryFailureCallback: function (data) {
+            alert("ajax query failure");
+        },
+    };
+
+    var current = appImplement.__constructor;
+    current.prototype = $.extend({}, appImplement);
+    //$.extend(current, appStatics);
+    window.currentApp = new current();
+});
+</script>
